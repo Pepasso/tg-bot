@@ -176,17 +176,17 @@ function registerCallbackHandler(bot, state) {
         }
         break;
       case 'page':
-        const page = parseInt(params[0]);
+        const page = parseInt(params[0], 10);
         state[chatId].currentPage = page;
         showBrandsPage(bot, chatId, page);
         break;
       case 'servicepage':
-        const servicePage = parseInt(params[0]);
+        const servicePage = parseInt(params[0], 10);
         state[chatId].currentServicePage = servicePage;
         showServicesPage(bot, chatId, servicePage);
         break;
       case 'lawyerpage':
-        const lawyerPage = parseInt(params[0]);
+        const lawyerPage = parseInt(params[0], 10);
         state[chatId].currentLawyersPage = lawyerPage;
         showLawyersPage(bot, chatId, lawyerPage);
         break;
