@@ -104,24 +104,8 @@ function showServicesPage(bot, chatId, page = 0) {
   }
 
 
-  const paginationButtons = [];
-
-  // Кнопки пагинации
-  if (page > 0) {
-    paginationButtons.push({
-      text: "◀️ Назад",
-      callback_data: `servicepage_${page-1}`
-    });
-  }
-  if ((page + 1) * SERVICES_PER_PAGE < allowedServices.length) {
-    paginationButtons.push({
-      text: "Вперед ▶️",
-      callback_data: `servicepage_${page+1}`
-    });
-  }
-
-
-  if (paginationButtons.length) inline_keyboard.push(paginationButtons);
+  const pagination = buildPaginationButtons('service', page, allowedServices.length, 'servicepage', SERVICES_PER_PAGE);
+  if (pagination.length) inline_keyboard.push(pagination);
   inline_keyboard.push([{
     text: '🔙 Главное меню',
     callback_data: 'main_menu'
@@ -147,23 +131,8 @@ function showLawyersPage(bot, chatId, page = 0) {
   }
 
 
-  const paginationButtons = [];
-
-  // Кнопки пагинации
-  if (page > 0) {
-    paginationButtons.push({
-      text: "◀️ Назад",
-      callback_data: `lawyerpage_${page-1}`
-    });
-  }
-  if ((page + 1) * LAWYERS_PER_PAGE < allowedLawyers.length) {
-    paginationButtons.push({
-      text: "Вперед ▶️",
-      callback_data: `lawyerpage_${page+1}`
-    });
-  }
-
-  if (paginationButtons.length) inline_keyboard.push(paginationButtons);
+  const pagination = buildPaginationButtons('lawyer', page, allowedLawyers.length, 'lawyerpage', LAWYERS_PER_PAGE);
+  if (pagination.length) inline_keyboard.push(pagination);
   inline_keyboard.push([{
     text: '🔙 Главное меню',
     callback_data: 'main_menu'
