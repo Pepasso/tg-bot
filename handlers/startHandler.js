@@ -1,9 +1,11 @@
 // handlers/startHandler.js
 
 const sqlite = require('sqlite-sync');
-const { sendMainMenu } = require('../utils/ui');
+const {
+  sendMainMenu
+} = require('../utils/ui');
 
-function registerStartCommand(bot, state) {
+function registerStartCommand(bot) {
   bot.onText(/\/start/, (msg) => {
     const userId = msg.from.id;
     const userName = msg.from.username || 'unknown';
@@ -19,7 +21,7 @@ function registerStartCommand(bot, state) {
       [userId, userName, command],
       function (err) {
         if (err) {
-          console.error('Ошибка записи в журнал команд:', err);
+          console.error('Ошибка записи:', err);
         } else {
           console.log('Запись добавлена, ID:', this.lastID);
         }
@@ -29,4 +31,6 @@ function registerStartCommand(bot, state) {
   });
 }
 
-module.exports = { registerStartCommand };
+module.exports = {
+  registerStartCommand
+};

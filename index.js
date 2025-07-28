@@ -36,19 +36,7 @@ const {
 } = require('./core/initHandlers');
 
 // Состояние (будет храниться в памяти — лучше вынести в хранилище позже)
-const state = {
-  currentPage: 0,
-  currentServicePage: 0,
-  currentLawyersPage: 0,
-  selectedCarCategory: null,
-  selectedFresh: null,
-  sellTCType: '',
-  productType: '',
-  sellHow: '',
-  serviceTypeOrg: null,
-  serviceRegion: null,
-  lawyerRegion: null,
-};
+const state = {};
 
 // Инициализация стартового меню
 initBotMenus(bot);

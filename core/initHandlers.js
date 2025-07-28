@@ -39,7 +39,7 @@ function registerCallbackHandlers(bot, state) {
 
 function registerMessageHandlers(bot, state) {
   registerMessageHandler(bot, state);
-  registerStartCommand(bot, state);
+  registerStartCommand(bot);
 }
 
 module.exports = {
