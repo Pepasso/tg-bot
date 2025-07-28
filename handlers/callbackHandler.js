@@ -13,7 +13,6 @@ const {
   showBrandsPage,
   showServicesPage,
   showHowSell,
-  showSellerInfo,
 } = require('../utils/menus');
 const {
   findModel,
@@ -28,6 +27,123 @@ const {
   getAndreyChatId
 } = require('../services/senderService');
 const fs = require('fs');
+
+async function showSellerInfo(bot, chatId, query, state) {
+  // Подготавливаем сообщение для продавца
+  let usernameInfo = '';
+  if (query.from.username) {
+    usernameInfo = ` (USERNAME: @${query.from.username})`;
+  }
+
+  const sellerMessage = `
+  🆕 Новый запрос на покупку/продажу авто!
+  Вид ТС: ${state.sellTCType}
+  Выбранный способ: ${state.sellHow}
+  Клиент: ${query.from.first_name}${usernameInfo}
+  `;
+
+  try {
+    // Получаем массив с объектом
+    const sellerData = getAndreyChatId(); // Возвращает [ { tgId: 1024842449 } ]
+
+    // Проверяем, что данные продавца получены
+    if (!sellerData || sellerData.length === 0) {
+      throw new Error('Данные продавца не найдены');
+    }
+
+    // Достаем первый элемент массива
+    const firstSeller = sellerData[0];
+
+    // Получаем числовой идентификатор
+    const sellerTgId = firstSeller.tgId; // 1024842449 (уже число)
+
+    // Отправляем сообщение продавцу
+    const isSent = await sendMessageToSeller(bot, sellerTgId, sellerMessage);
+
+    if (isSent) {
+      // Создаем клавиатуру с кнопкой "Начать чат"
+      const chatUrl = `tg://resolve?domain=${encodeURIComponent(firstSeller.username)}`; // Используем chatUsername, если он есть
+      const chatKeyboard = {
+        inline_keyboard: [
+          [{
+            text: "Начать чат",
+            url: chatUrl
+          }],
+          [{
+            text: "🔙 Главное меню",
+            callback_data: "main_menu"
+          }]
+        ]
+      };
+
+      // Сообщение для клиента
+      const clientMessage = `
+🚘 Оставте заявку, в течение 10 минут мы с Вами свяжемся для уточнения деталей и приедем на осмотр.
+Телефон: <a href="tel:+79134363667">+79134363667</a>.
+`;
+
+      // Первое сообщение
+      await bot.sendMessage(chatId, clientMessage, {
+        parse_mode: 'HTML',
+        reply_markup: chatKeyboard
+      });
+
+      // 2. Отправляем reply-клавиатуру с контактом
+      const contactKeyboard = {
+        reply_markup: {
+          keyboard: [
+            [{
+              text: "📱 Поделиться контактом",
+              request_contact: true
+            }]
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true
+        }
+      };
+
+      // Второе сообщение
+      await bot.sendMessage(chatId, "Вы можете поделиться контактом по кнопке ниже!", contactKeyboard);
+
+      // 3. Запускаем обработчик контакта ТОЛЬКО ПОСЛЕ отправки клавиатуры
+      const contactHandler = async (msg) => {
+        if (msg.contact) {
+          // Удаляем обработчик после первого использования
+          bot.removeListener('message', contactHandler);
+
+          if (!sellerData.length) throw new Error('Продавец не найден');
+
+          const sellerMessage = `
+📱 Новый контакт от клиента:
+Имя: ${msg.from.first_name}
+Телефон: ${msg.contact.phone_number}
+`;
+
+          await sendMessageToSeller(bot, sellerData[0].tgId, sellerMessage);
+          await bot.sendMessage(chatId, "✅ Контакт отправлен продавцу!");
+        }
+      };
+
+      // Регистрируем обработчик
+      bot.on('message', contactHandler);
+    } else {
+      // Если сообщение не отправлено
+      bot.sendMessage(chatId, '❌ Не удалось отправить заявку. Попробуйте позже.', {
+        reply_markup: {
+          inline_keyboard: [
+            [{
+              text: "Назад",
+              callback_data: "sell_command"
+            }]
+          ]
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Ошибка:', error);
+    bot.sendMessage(chatId, '⚠️ Произошла ошибка. Попробуйте позже.');
+  }
+}
 
 function registerCallbackHandler(bot, state) {
   bot.on('callback_query', async (query) => {
@@ -51,20 +167,28 @@ function registerCallbackHandler(bot, state) {
         state[chatId].currentPage = 0;
         showCategoryKeyboard(bot, chatId);
         break;
+      case 'command':
+        if (params[0] === 'service') {
+          showServiceRegionKeyboard(bot, chatId);
+        } else if (params[0] === 'lawyer') {
+          state[chatId].currentLawyersPage = 0;
+          showLawyersPage(bot, chatId, 0);
+        }
+        break;
       case 'page':
         const page = parseInt(params[0]);
         state[chatId].currentPage = page;
-        showBrandsPage(bot, chatId, page, state[chatId]);
+        showBrandsPage(bot, chatId, page);
         break;
       case 'servicepage':
         const servicePage = parseInt(params[0]);
         state[chatId].currentServicePage = servicePage;
-        showServicesPage(bot, chatId, servicePage, state[chatId]);
+        showServicesPage(bot, chatId, servicePage);
         break;
       case 'lawyerpage':
         const lawyerPage = parseInt(params[0]);
         state[chatId].currentLawyersPage = lawyerPage;
-        showLawyersPage(bot, chatId, lawyerPage, state[chatId]);
+        showLawyersPage(bot, chatId, lawyerPage);
         break;
       case 'category':
         state[chatId].selectedCarCategory = parseInt(params[0]);
@@ -73,7 +197,7 @@ function registerCallbackHandler(bot, state) {
       case 'fresh':
         state[chatId].selectedFresh = parseInt(params[0]);
         state[chatId].currentPage = 0;
-        showBrandsPage(bot, chatId, 0, state[chatId]);
+        showBrandsPage(bot, chatId, 0);
         break;
       case 'brand':
         const brand = params[0];
@@ -207,7 +331,7 @@ function registerCallbackHandler(bot, state) {
       case 'serviceregion':
         state[chatId].serviceRegion = parseInt(params[0]);
         state[chatId].currentServicePage = 0;
-        showServicesPage(bot, chatId, 0, state[chatId]);
+        showServicesPage(bot, chatId, 0);
         break;
       case 'service':
         const serviceKey = params.join('_');
